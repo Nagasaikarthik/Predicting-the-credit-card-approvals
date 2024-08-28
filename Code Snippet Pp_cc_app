@@ -1,0 +1,143 @@
+#---------------------------------------------Code for the #predicting the credit card approvals-----------------------------------------------------------------------#
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+credit=pd.read_csv('  ' ,header=None)
+print(credit)
+credits_description=credit.describe()
+print(credits_description)
+credits_info=credit.info()
+print(credits_info)
+from sklearn.model_selection import train_test_split
+credit=credit.drop([11,13],axis=1)
+print(credit.head())
+credit_train,credit_test=train_test_split(credit,test_size=0.3,random_state=42)
+print(credit_train.shape)
+print(credit_test.shape)
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+# Select numeric columns
+numeric_columns = credit.select_dtypes(include=np.number).columns
+
+# Fill NaNs in numeric columns with the mean of the original 'credit' DataFrame
+credit_train[numeric_columns] = credit_train[numeric_columns].fillna(credit[numeric_columns].mean())
+credit_test[numeric_columns] = credit_test[numeric_columns].fillna(credit[numeric_columns].mean())
+print(credit.isnull().sum())
+
+# Separate features and target variable
+X_train = credit_train.drop(15, axis=1)
+y_train = credit_train[15]
+X_test = credit_test.drop(15, axis=1)
+y_test = credit_test[15]
+
+# Convert categorical features to numerical using one-hot encoding
+X_train = pd.get_dummies(X_train)
+X_test = pd.get_dummies(X_test)
+
+# Handle potential missing columns in test set
+missing_cols = set(X_train.columns) - set(X_test.columns)
+for c in missing_cols:
+    X_test[c] = 0
+X_test = X_test[X_train.columns]
+
+# Convert all column names to strings 
+X_train.columns = X_train.columns.astype(str)
+X_test.columns = X_test.columns.astype(str)
+
+# 1. Logistic Regression
+lr_model = LogisticRegression(max_iter=1000)
+lr_model.fit(X_train, y_train)
+lr_pred = lr_model.predict(X_test)
+print("Logistic Regression Accuracy:", accuracy_score(y_test, lr_pred))
+print("Confusion Matrix:\n", confusion_matrix(y_test, lr_pred))
+print("Classification Report:\n", classification_report(y_test, lr_pred))
+
+# 2. Decision Tree
+dt_model = DecisionTreeClassifier()
+dt_model.fit(X_train, y_train)
+dt_pred = dt_model.predict(X_test)
+print("Decision Tree Accuracy:", accuracy_score(y_test, dt_pred))
+print("Confusion Matrix:\n", confusion_matrix(y_test, dt_pred))
+print("Classification Report:\n", classification_report(y_test, dt_pred))
+
+# 3. Random Forest
+rf_model = RandomForestClassifier()
+rf_model.fit(X_train, y_train)
+rf_pred = rf_model.predict(X_test)
+print("Random Forest Accuracy:", accuracy_score(y_test, rf_pred))
+print("Confusion Matrix:\n", confusion_matrix(y_test, rf_pred))
+print("Classification Report:\n", classification_report(y_test, rf_pred))
+
+# 4. Support Vector Machine (SVM)
+svm_model = SVC()
+svm_model.fit(X_train, y_train)
+svm_pred = svm_model.predict(X_test)
+print("SVM Accuracy:", accuracy_score(y_test, svm_pred))
+print("Confusion Matrix:\n", confusion_matrix(y_test, svm_pred))
+print("Classification Report:\n", classification_report(y_test, svm_pred))
+
+# 5. K-Nearest Neighbors (KNN)
+knn_model = KNeighborsClassifier()
+knn_model.fit(X_train, y_train)
+knn_pred = knn_model.predict(X_test)
+print("KNN Accuracy:", accuracy_score(y_test, knn_pred))
+print("Confusion Matrix:\n", confusion_matrix(y_test, knn_pred))
+print("Classification Report:\n", classification_report(y_test, knn_pred))
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Models and their predictions
+models = {
+    "Logistic Regression": LogisticRegression(max_iter=1000),
+    "Decision Tree": DecisionTreeClassifier(),
+    "Random Forest": RandomForestClassifier(),
+    "SVM": SVC(),
+    "KNN": KNeighborsClassifier()
+}
+
+results = {}
+
+
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    pred = model.predict(X_test)
+    results[name] = {
+        "Accuracy": accuracy_score(y_test, pred),
+        "Confusion Matrix": confusion_matrix(y_test, pred),
+        "Classification Report": classification_report(y_test, pred)
+    }
+
+# Print results and plot confusion matrices
+plt.figure(figsize=(15, 10))
+for i, (name, result) in enumerate(results.items()):
+    plt.subplot(2, 3, i+1)
+    sns.heatmap(result["Confusion Matrix"], annot=True, fmt="d", cmap="Blues")
+    plt.title(f"{name} Confusion Matrix")
+    plt.xlabel("Predicted")
+    plt.ylabel("Actual")
+    print(f"{name} Accuracy: {result['Accuracy']}")
+    print(f"{name} Classification Report:\n {result['Classification Report']}")
+
+plt.tight_layout()
+plt.show()
+
+# Find the best model based on accuracy
+best_model = max(results, key=lambda k: results[k]['Accuracy'])
+print(f"\nBest Model: {best_model} with Accuracy: {results[best_model]['Accuracy']}")
+# Extract accuracy scores from the results dictionary
+model_names = list(results.keys())
+accuracies = [results[model]['Accuracy'] for model in model_names]
+# Create the bar graph for showing the best model.
+plt.figure(figsize=(10, 6))
+plt.bar(model_names, accuracies, color=['blue', 'green', 'red', 'cyan', 'magenta'])
+plt.xlabel("Models")
+plt.ylabel("Accuracy")
+plt.title("Model Accuracy Comparison")
+plt.show()
